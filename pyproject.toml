@@ -8,4 +8,5 @@ dependencies = [
     "easyocr>=1.7.2",
     "opencv-python>=4.13.0.92",
     "python-dateutil>=2.9.0.post0",
+    "streamlit>=1.54.0",
 ]

@@ -61,16 +61,17 @@ else:
     action = st.segmented_control("Aktion wählen", options, selection_mode="single")
 
     # Name selection — only needed for Kommt/Geht
-    name = None
+    selected_names = []
     if action in ("Kommt", "Geht"):
-        name = st.selectbox("Name", options=names, index=None, placeholder="Name wählen...")
+        selected_names = st.multiselect("Namen", options=names, placeholder="Namen wählen...")
 
-    # Weiter enabled when action is set AND (Fehler OR name chosen)
-    can_continue = action is not None and (action == "Fehler" or name is not None)
+    # Weiter enabled when action is set AND (Fehler OR at least one name chosen)
+    can_continue = action is not None and (action == "Fehler" or len(selected_names) > 0)
 
     if st.button("Weiter", type="primary", disabled=not can_continue):
         if action != "Fehler":
-            st.session_state.results.append((timestamp, action, name))
+            for name in selected_names:
+                st.session_state.results.append((timestamp, action, name))
         st.session_state.index += 1
         st.session_state.action = None
         st.rerun()

@@ -22,7 +22,7 @@ def ocr_timestamp(reader, cropped):
     bbox, text, prob = results[0]
     text = text.replace(".", ":")  # Unschöne Korrektur
     timestamp = dateparser.parse(text, fuzzy=True)
-    return timestamp.isoformat()
+    return timestamp.strftime("%Y-%m-%dT%H%M%S")
 
 
 def select_rois(video_path):

@@ -68,8 +68,13 @@ def preprocess_videos(video_folder):
         print(f"Verarbeite {video}...")
         cap = cv2.VideoCapture(video)
 
-        prev_door = None
-        last_saved_time = -9999
+        prev_gray = None
+        cooldown = 0
+        cooldown_frames = 90  # ~3 Sekunden bei 30fps
+
+        # Schwellenwert: 5% der Tür-ROI-Fläche muss sich ändern
+        _, _, door_w, door_h = door_roi
+        motion_pixel_threshold = int((door_w * door_h) * 0.05)
 
         while True:
             ret, frame = cap.read()
@@ -77,32 +82,36 @@ def preprocess_videos(video_folder):
                 break
 
             door_cropped = crop(frame, door_roi)
+            gray = cv2.cvtColor(door_cropped, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-            diff_image = cv2.cvtColor(door_cropped, cv2.COLOR_BGR2GRAY)
-
-            if prev_door is None:
-                prev_door = diff_image
+            if prev_gray is None:
+                prev_gray = gray
                 continue
 
-            diff = cv2.absdiff(prev_door, diff_image)
-            # Summieren und Normalisieren
-            diff_sum = (diff.sum() / 255) / (diff.shape[0] * diff.shape[1])
+            # Hintergrund auch während Cooldown aktualisieren
+            if cooldown > 0:
+                cooldown -= 1
+                prev_gray = gray
+                continue
 
-            pos_msec = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            diff = cv2.absdiff(prev_gray, gray)
+            thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1]
+            motion_pixels = cv2.countNonZero(thresh)
 
-            if (
-                diff_sum > 0.03 and (pos_msec - last_saved_time) > 6
-            ):  # Schwellenwert nach Bedarf anpassen
-                last_saved_time = pos_msec
+            if motion_pixels > motion_pixel_threshold:
+                cooldown = cooldown_frames
 
                 timestamp_cropped = crop(frame, timestamp_roi)
                 timestamp = ocr_timestamp(reader, timestamp_cropped)
 
-                print(f"Tür geöffnet um {timestamp} (diff: {diff_sum:.4f})")
+                print(f"Tür geöffnet um {timestamp} (motion: {motion_pixels}px)")
                 output_path = (
                     Path(OUTPUT_FOLDER) / "out" / f"{video.stem}_{timestamp}.jpg"
                 )
                 cv2.imwrite(output_path, frame)
+
+            prev_gray = gray
 
 
 if __name__ == "__main__":

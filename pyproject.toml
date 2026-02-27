@@ -10,3 +10,9 @@ dependencies = [
     "python-dateutil>=2.9.0.post0",
     "streamlit>=1.54.0",
 ]
+
+[project.scripts]
+monkeycamsp = "app:main"
+
+[tool.setuptools]
+py-modules = ["app"]

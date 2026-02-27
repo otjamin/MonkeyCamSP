@@ -16,3 +16,6 @@ monkeycamsp = "app:main"
 
 [tool.setuptools]
 py-modules = ["app"]
+
+[tool.uv]
+package = true
